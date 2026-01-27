@@ -22,9 +22,16 @@ int main() {
 	int n;
 	cout << "¿Cuantos numeros?";
 	cin >> n;
-
-	int suma = computar_suma(n);
-	cout << "la suma es " << suma << endl;
+	
+	//se comprueba que sea true que n >= 1
+	if (n >= 1) {
+		int suma = computar_suma(n);
+		cout << "la suma es " << suma << endl;
+	}
+	else {
+		cout << "la suma tiene que ser mayor que 1 " << endl;
+	}	
+	
 	return 0;
 }
    
