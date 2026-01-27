@@ -29,7 +29,8 @@ int main() {
 		cout << "la suma es " << suma << endl;
 	}
 	else {
-		cout << "la suma tiene que ser mayor que 1 " << endl;
+		cout << "el numero de sumas tiene que ser mayor que 1. Escribe un numero nuevo: " << endl;
+		cin >> n;
 	}	
 	
 	return 0;
