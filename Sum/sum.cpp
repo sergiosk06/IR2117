@@ -2,11 +2,21 @@
 using namespace std;
 
 int main() {
-    int number;
-    cin >> number;
+    int n;
+    cout << "¿Cuantos numeros?"
+    cin >> n;
 
     int sum = 0;
+    int x;
+    
+    for (int i = 0; i < n; ++i) {
+    	cout << "Escribe un numero: ";
+    	cin >> x;
+    	sum += x;
+    
+    }
 
     cout << "la suma es " << sum << endl;
     return 0;
 }
+   
