@@ -15,16 +15,16 @@ int computar_suma(int n) {
 
 	}
 
-	return sum
+	return sum;
 }
 
 int main() {
 	int n;
-	cout << "¿Cuantos numeros?"
+	cout << "¿Cuantos numeros?";
 	cin >> n;
 
 	int suma = computar_suma(n);
-	cout << "la suma es " << sum << endl;
+	cout << "la suma es " << suma << endl;
 	return 0;
 }
    
