@@ -18,6 +18,9 @@ int main(){
 		float x = -b / a;
 		cout << "La solución es x = " << x << endl;
 	}
+	else if (b != 0){
+		cout << "No hay solucion" << endl;
+	}
 	
 	return 0;	
 }
