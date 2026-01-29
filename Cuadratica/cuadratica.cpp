@@ -1,5 +1,6 @@
 #include <iostream>
 using namespace std;
+#include <cmath>
 
 int main() {
 	double a, b, c;
@@ -18,8 +19,16 @@ int main() {
 	cout << "Discriminante = " << d << endl;
 
 	if (d > 0) {
-	soluciones += 2;
-	cout << soluciones << endl;
+	       	double x1 = (-b + sqrt(d))/(2*a);
+		double x2 = (-b - sqrt(d))/(2*a);
+		cout << "Soluciones: " << x1 << ", " << x2 << endl;
+		
+	}
+	else if (d < 0){
+		cout << "No hay ninguna solucion";
+	} else{
+		double x = -b/(2*a);
+		cout << "Hay una unica solucion x = " << x << endl;
 	}
 	return 0;
 }
