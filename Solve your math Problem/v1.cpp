@@ -20,7 +20,8 @@ int main(){
 	}
 	else if (b != 0){
 		cout << "No hay solucion" << endl;
+	} else {
+		cout << "x tiene infinitas soluciones" << endl;
 	}
-	
 	return 0;	
 }
