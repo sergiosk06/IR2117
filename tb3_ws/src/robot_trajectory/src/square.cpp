@@ -10,32 +10,36 @@ int main(int argc, char * argv[])
     auto node = rclcpp::Node::make_shared("square_node");
     auto publisher = node->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
     
-    // --- 1. DECLARAR PARÁMETROS (Basado en tus imágenes) ---
-    node->declare_parameter("linear_speed", 0.5); // Velocidad lineal aumentada según tu imagen
-    node->declare_parameter("angular_speed", 0.785); // Aprox pi/4 para giros más rápidos
-    node->declare_parameter("line_steps", 1000); // Pasos para la distancia
-    node->declare_parameter("turn_steps", 1000); // Pasos para el ángulo
-    
+    // 1. DEFINIR PARÁMETROS (Como en la imagen)
+    // Se eliminó "speed" para usar nombres más específicos
+    node->declare_parameter("linear_speed", 0.1);
+    node->declare_parameter("angular_speed", 3.1416 / 20.0);
+    // Parámetros adicionales para corregir distancia y ángulo sin recompilar
+    node->declare_parameter("line_iterations", 1000);
+    node->declare_parameter("turn_iterations", 1000);
+
     geometry_msgs::msg::Twist message;
     rclcpp::WallRate loop_rate(10ms);
 
-    // --- 2. OBTENER VALORES ---
+    // 2. OBTENER VALORES DE LOS PARÁMETROS
     double linear_speed = node->get_parameter("linear_speed").as_double();
     double angular_speed = node->get_parameter("angular_speed").as_double();
-    int line_steps = node->get_parameter("line_steps").as_int();
-    int turn_steps = node->get_parameter("turn_steps").as_int();
+    int line_iterations = node->get_parameter("line_iterations").as_int();
+    int turn_iterations = node->get_parameter("turn_iterations").as_int();
 
+    // Ciclo para los 4 lados
     for (int i = 0; i < 4; i++) {
         int n = 0;
-        int total_steps = line_steps + turn_steps;
+        int total_iterations = line_iterations + turn_iterations;
 
-        while (rclcpp::ok() && (n < total_steps)) {
-            if (n < line_steps) {
-                // FASE RECTA: Usa el parámetro de velocidad lineal
+        // Bucle unificado (Fix: distance/angle -> number of iterations)
+        while (rclcpp::ok() && (n < total_iterations)) {
+            if (n < line_iterations) {
+                // FASE RECTA
                 message.linear.x = linear_speed;
                 message.angular.z = 0.0;
             } else {
-                // FASE GIRO: Usa el parámetro de velocidad angular
+                // FASE GIRO
                 message.linear.x = 0.0;
                 message.angular.z = angular_speed;
             }
@@ -45,6 +49,16 @@ int main(int argc, char * argv[])
             loop_rate.sleep();
             n++;
         }
+    }
+
+    // Detener al robot al finalizar
+    message.linear.x = 0.0;
+    message.angular.z = 0.0;
+    publisher->publish(message);
+
+    rclcpp::shutdown();
+    return 0;
+}
     }
 
     // Detener al robot al final
