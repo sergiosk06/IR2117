@@ -10,36 +10,37 @@ int main(int argc, char * argv[])
     auto node = rclcpp::Node::make_shared("square_node");
     auto publisher = node->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
     
-    // 1. DEFINIR PARÁMETROS (Como en la imagen)
-    // Se eliminó "speed" para usar nombres más específicos
+    // 1. DEFINIR PARÁMETROS (Imagen 1 y 2)
+    // Cambiamos "speed" por "linear_speed" y añadimos "angular_speed"
     node->declare_parameter("linear_speed", 0.1);
     node->declare_parameter("angular_speed", 3.1416 / 20.0);
-    // Parámetros adicionales para corregir distancia y ángulo sin recompilar
-    node->declare_parameter("line_iterations", 1000);
-    node->declare_parameter("turn_iterations", 1000);
+    
+    // Parámetros para el número de iteraciones (Imagen 3)
+    // Ajusta estos valores para "Fix: distance/angle"
+    node->declare_parameter("line_steps", 1000); 
+    node->declare_parameter("turn_steps", 1000);
 
     geometry_msgs::msg::Twist message;
-    rclcpp::WallRate loop_rate(10ms);
+    rclcpp::WallRate loop_rate(10ms); // Frecuencia de 100Hz
 
-    // 2. OBTENER VALORES DE LOS PARÁMETROS
+    // 2. OBTENER VALORES (Imagen 1)
     double linear_speed = node->get_parameter("linear_speed").as_double();
     double angular_speed = node->get_parameter("angular_speed").as_double();
-    int line_iterations = node->get_parameter("line_iterations").as_int();
-    int turn_iterations = node->get_parameter("turn_iterations").as_int();
+    int line_steps = node->get_parameter("line_steps").as_int();
+    int turn_steps = node->get_parameter("turn_steps").as_int();
 
-    // Ciclo para los 4 lados
     for (int i = 0; i < 4; i++) {
         int n = 0;
-        int total_iterations = line_iterations + turn_iterations;
+        int total_cycle = line_steps + turn_steps;
 
-        // Bucle unificado (Fix: distance/angle -> number of iterations)
-        while (rclcpp::ok() && (n < total_iterations)) {
-            if (n < line_iterations) {
-                // FASE RECTA
+        // Bucle único por lado (Imagen 1: while (n < 2000))
+        while (rclcpp::ok() && (n < total_cycle)) {
+            if (n < line_steps) {
+                // FASE: MOVE FORWARD 1m (Imagen 4)
                 message.linear.x = linear_speed;
                 message.angular.z = 0.0;
             } else {
-                // FASE GIRO
+                // FASE: TURNING 90º (Imagen 5)
                 message.linear.x = 0.0;
                 message.angular.z = angular_speed;
             }
@@ -51,7 +52,7 @@ int main(int argc, char * argv[])
         }
     }
 
-    // Detener al robot al finalizar
+    // Detener al robot al terminar
     message.linear.x = 0.0;
     message.angular.z = 0.0;
     publisher->publish(message);
