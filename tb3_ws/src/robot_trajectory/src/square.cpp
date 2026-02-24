@@ -1,6 +1,7 @@
 #include <chrono>
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include <cmath> // Necesario para M_PI_2 (Imagen 5)
 
 using namespace std::chrono_literals;
 
@@ -10,48 +11,48 @@ int main(int argc, char * argv[])
     auto node = rclcpp::Node::make_shared("square");
     auto publisher = node->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
     
-    // 1. DECLARAR PARÁMETROS (Como en tus imágenes 1 y 2)
-    node->declare_parameter("linear_speed", 0.5);   // Velocidad para avanzar
-    node->declare_parameter("angular_speed", 0.78); // Velocidad para girar (~pi/4 rad/s)
+    // DECLARACIÓN DE PARÁMETROS (Imagen 3 y 4)
+    node->declare_parameter("linear_speed", 0.5);   
+    node->declare_parameter("angular_speed", 1.2); 
+    node->declare_parameter("square_length", 1.5); 
     
-    // 2. PARÁMETROS DE ITERACIONES (Fix: distance/angle -> Imagen 3)
-    // Ajustar estos números permite arreglar el cuadrado sin tocar el código
-    node->declare_parameter("line_steps", 1000); 
-    node->declare_parameter("turn_steps", 1000);
-
     geometry_msgs::msg::Twist message;
-    rclcpp::WallRate loop_rate(10ms); // Frecuencia fija (100Hz)
+    const double dt = 0.01; // Ciclo de 10ms (Imagen 4)
+    rclcpp::WallRate loop_rate(10ms); 
 
-    // 3. OBTENER VALORES ACTUALES
+    // OBTENER VALORES ACTUALES
     double linear_speed = node->get_parameter("linear_speed").as_double();
     double angular_speed = node->get_parameter("angular_speed").as_double();
-    int line_steps = node->get_parameter("line_steps").as_int();
-    int turn_steps = node->get_parameter("turn_steps").as_int();
+    double square_length = node->get_parameter("square_length").as_double();
+
+    // CÁLCULO DE ITERACIONES SEGÚN TUS FÓRMULAS (Imagen 1 y 2)
+    // line_iterations = length / (0.01 * linear_speed)
+    int line_steps = static_cast<int>(square_length / (dt * linear_speed));
+    
+    // Para girar 90 grados exactos usando M_PI_2 (Imagen 5)
+    int turn_steps = static_cast<int>(M_PI_2 / (dt * angular_speed));
 
     for (int i = 0; i < 4; i++) {
-        int n = 0;
-        int total_cycle = line_steps + turn_steps;
-
-        // Bucle unificado (Imagen 1: while (n < 2000))
-        while (rclcpp::ok() && (n < total_cycle)) {
-            if (n < line_steps) {
-                // FASE: MOVE FORWARD (Imagen 4)
-                message.linear.x = linear_speed;
-                message.angular.z = 0.0;
-            } else {
-                // FASE: TURNING (Imagen 5)
-                message.linear.x = 0.0;
-                message.angular.z = angular_speed;
-            }
-            
+        // FASE: AVANZAR
+        for (int n = 0; n < line_steps && rclcpp::ok(); n++) {
+            message.linear.x = linear_speed;
+            message.angular.z = 0.0;
             publisher->publish(message);
             rclcpp::spin_some(node);
             loop_rate.sleep();
-            n++;
+        }
+
+        // FASE: GIRAR
+        for (int n = 0; n < turn_steps && rclcpp::ok(); n++) {
+            message.linear.x = 0.0;
+            message.angular.z = angular_speed;
+            publisher->publish(message);
+            rclcpp::spin_some(node);
+            loop_rate.sleep();
         }
     }
 
-    // Parada final de seguridad
+    // Parada final
     message.linear.x = 0.0;
     message.angular.z = 0.0;
     publisher->publish(message);
