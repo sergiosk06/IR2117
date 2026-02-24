@@ -7,7 +7,7 @@ using namespace std::chrono_literals;
 int main(int argc, char * argv[])
 {
     rclcpp::init(argc, argv);
-    auto node = rclcpp::Node::make_shared("square_node");
+    auto node = rclcpp::Node::make_shared("square");
     auto publisher = node->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
     
     // 1. DECLARAR PARÁMETROS (Como en tus imágenes 1 y 2)
