@@ -1,6 +1,6 @@
 #include <chrono>
 #include <memory>
-#include <cmath> // Para sqrt y pow
+#include <cmath>
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
@@ -18,14 +18,14 @@ public:
 
         first_odom_received_ = false;
         current_distance_ = 0.0;
+        angle_diff_ = 0.0;
 
-        // Timer para mostrar el cálculo de distancia
         timer_ = this->create_wall_timer(500ms, std::bind(&SquareOdomNode::display_metrics, this));
     }
 
 private:
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
-        // Extraer Yaw
+        // Obtener el Yaw actual usando TF2
         tf2::Quaternion q(
             msg->pose.pose.orientation.x,
             msg->pose.pose.orientation.y,
@@ -46,18 +46,24 @@ private:
         current_y_ = msg->pose.pose.position.y;
         current_theta_ = yaw;
 
-        // 1. Calcular la distancia euclidiana entre la posición inicial y la actual
-        current_distance_ = std::sqrt(
-            std::pow(current_x_ - initial_x_, 2) + 
-            std::pow(current_y_ - initial_y_, 2)
-        );
+        // Cálculo de distancia (Versión 6)
+        current_distance_ = std::sqrt(std::pow(current_x_ - initial_x_, 2) + std::pow(current_y_ - initial_y_, 2));
+
+        // 1. Calcular la diferencia entre el ángulo inicial y el actual (Versión 7)
+        angle_diff_ = current_theta_ - initial_theta_;
+
+        // Normalización del ángulo (opcional pero recomendado para evitar saltos de 2PI)
+        while (angle_diff_ < -M_PI) angle_diff_ += 2.0 * M_PI;
+        while (angle_diff_ > M_PI) angle_diff_ -= 2.0 * M_PI;
     }
 
     void display_metrics() {
         if (first_odom_received_) {
-            // 2. Mostrar la distancia calculada
-            RCLCPP_INFO(this->get_logger(), ">> Distancia desde el origen: [%.3f m]", current_distance_);
-            RCLCPP_INFO(this->get_logger(), ">> Ángulo actual: [%.2f°]", current_theta_ * (180.0/M_PI));
+            // 2. Mostrar la diferencia de ángulo
+            RCLCPP_INFO(this->get_logger(), "------------------------------------");
+            RCLCPP_INFO(this->get_logger(), "Distancia recorrida: [%.3f m]", current_distance_);
+            RCLCPP_INFO(this->get_logger(), "Diferencia angular: [%.3f rad] (%.1f°)", 
+                        angle_diff_, angle_diff_ * (180.0/M_PI));
         }
     }
 
@@ -68,7 +74,8 @@ private:
     bool first_odom_received_;
     double current_x_, current_y_, current_theta_;
     double initial_x_, initial_y_, initial_theta_;
-    double current_distance_; // Variable Versión 6
+    double current_distance_;
+    double angle_diff_; // Variable Versión 7
 };
 
 int main(int argc, char * argv[]) {
