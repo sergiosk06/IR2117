@@ -1,62 +1,96 @@
 #include <chrono>
+#include <memory>
+#include <cmath>
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include <cmath> // Necesario para M_PI_2 (Imagen 5)
+#include "nav_msgs/msg/odometry.hpp" //
 
 using namespace std::chrono_literals;
 
-int main(int argc, char * argv[])
-{
-    rclcpp::init(argc, argv);
-    auto node = rclcpp::Node::make_shared("square");
-    auto publisher = node->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
-    
-    // DECLARACIÓN DE PARÁMETROS (Imagen 3 y 4)
-    node->declare_parameter("linear_speed", 0.5);   
-    node->declare_parameter("angular_speed", 1.2); 
-    node->declare_parameter("square_length", 1.5); 
-    
-    geometry_msgs::msg::Twist message;
-    const double dt = 0.01; // Ciclo de 10ms (Imagen 4)
-    rclcpp::WallRate loop_rate(10ms); 
+class SquareOdomNode : public rclcpp::Node {
+public:
+    SquareOdomNode() : Node("square_odom") {
+        // Publicador para mover el robot
+        publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 
-    // OBTENER VALORES ACTUALES
-    double linear_speed = node->get_parameter("linear_speed").as_double();
-    double angular_speed = node->get_parameter("angular_speed").as_double();
-    double square_length = node->get_parameter("square_length").as_double();
+        // 1. Crear la suscripción al tópico /odom
+        subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
+            "/odom", 
+            10, 
+            std::bind(&SquareOdomNode::odom_callback, this, std::placeholders::_1) //
+        );
 
-    // CÁLCULO DE ITERACIONES SEGÚN TUS FÓRMULAS (Imagen 1 y 2)
-    // line_iterations = length / (0.01 * linear_speed)
-    int line_steps = static_cast<int>(square_length / (dt * linear_speed));
-    
-    // Para girar 90 grados exactos usando M_PI_2 (Imagen 5)
-    int turn_steps = static_cast<int>(M_PI_2 / (dt * angular_speed));
+        // Parámetros
+        this->declare_parameter("linear_speed", 0.2);   
+        this->declare_parameter("angular_speed", 0.8); 
+        this->declare_parameter("square_length", 1.0); 
 
-    for (int i = 0; i < 4; i++) {
-        // FASE: AVANZAR
-        for (int n = 0; n < line_steps && rclcpp::ok(); n++) {
-            message.linear.x = linear_speed;
-            message.angular.z = 0.0;
-            publisher->publish(message);
-            rclcpp::spin_some(node);
-            loop_rate.sleep();
-        }
+        // Temporizador para ejecutar el movimiento cuadrado
+        timer_ = this->create_wall_timer(100ms, std::bind(&SquareOdomNode::run_square, this));
+    }
 
-        // FASE: GIRAR
-        for (int n = 0; n < turn_steps && rclcpp::ok(); n++) {
-            message.linear.x = 0.0;
-            message.angular.z = angular_speed;
-            publisher->publish(message);
-            rclcpp::spin_some(node);
-            loop_rate.sleep();
+private:
+    // 2. Callback para mostrar los valores (x, y) de la posición
+    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) const {
+        double x = msg->pose.pose.position.x; //
+        double y = msg->pose.pose.position.y; //
+        RCLCPP_INFO(this->get_logger(), "Posición actual: x=[%.2f], y=[%.2f]", x, y);
+    }
+
+    void run_square() {
+        // Aquí iría la lógica de movimiento (opcionalmente puedes mantener 
+        // tu bucle for original, pero en ROS2 es mejor usar máquinas de estado)
+        static int step = 0;
+        if (step == 0) {
+            execute_trajectory();
+            step++;
         }
     }
 
-    // Parada final
-    message.linear.x = 0.0;
-    message.angular.z = 0.0;
-    publisher->publish(message);
+    void execute_trajectory() {
+        double linear_speed = this->get_parameter("linear_speed").as_double();
+        double angular_speed = this->get_parameter("angular_speed").as_double();
+        double square_length = this->get_parameter("square_length").as_double();
+        
+        geometry_msgs::msg::Twist msg;
+        const double dt = 0.01;
+        rclcpp::WallRate loop_rate(10ms);
 
+        int line_steps = static_cast<int>(square_length / (dt * linear_speed));
+        int turn_steps = static_cast<int>(M_PI_2 / (dt * angular_speed));
+
+        for (int i = 0; i < 4 && rclcpp::ok(); i++) {
+            // Avanzar
+            for (int n = 0; n < line_steps && rclcpp::ok(); n++) {
+                msg.linear.x = linear_speed;
+                msg.angular.z = 0.0;
+                publisher_->publish(msg);
+                rclcpp::spin_some(this->get_node_base_interface());
+                loop_rate.sleep();
+            }
+            // Girar
+            for (int n = 0; n < turn_steps && rclcpp::ok(); n++) {
+                msg.linear.x = 0.0;
+                msg.angular.z = angular_speed;
+                publisher_->publish(msg);
+                rclcpp::spin_some(this->get_node_base_interface());
+                loop_rate.sleep();
+            }
+        }
+        // Parar
+        msg.linear.x = 0.0;
+        msg.angular.z = 0.0;
+        publisher_->publish(msg);
+    }
+
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription_;
+    rclcpp::TimerBase::SharedPtr timer_;
+};
+
+int main(int argc, char * argv[]) {
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<SquareOdomNode>());
     rclcpp::shutdown();
     return 0;
 }
