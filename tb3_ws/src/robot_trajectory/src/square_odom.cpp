@@ -4,6 +4,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 
 using namespace std::chrono_literals;
 
@@ -11,57 +13,52 @@ class SquareOdomNode : public rclcpp::Node {
 public:
     SquareOdomNode() : Node("square_odom") {
         publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
-
         subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
-            "/odom", 
-            10, 
-            std::bind(&SquareOdomNode::odom_callback, this, std::placeholders::_1)
-        );
+            "/odom", 10, std::bind(&SquareOdomNode::odom_callback, this, std::placeholders::_1));
 
-        this->declare_parameter("linear_speed", 0.2);   
-        this->declare_parameter("angular_speed", 0.8); 
-        this->declare_parameter("square_length", 1.0); 
-
-        // Inicializar variables de posición
+        // Inicializar variables
         current_x_ = 0.0;
         current_y_ = 0.0;
+        current_theta_ = 0.0; // Ángulo Yaw
 
-        // Timer para ejecutar la lógica y mostrar variables
-        timer_ = this->create_wall_timer(500ms, std::bind(&SquareOdomNode::display_and_run, this));
+        timer_ = this->create_wall_timer(500ms, std::bind(&SquareOdomNode::display_data, this));
     }
 
 private:
-    // 1. Almacenar los valores de (x,y) en variables de la clase (globales al nodo)
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+        // Guardar posición X e Y
         current_x_ = msg->pose.pose.position.x;
         current_y_ = msg->pose.pose.position.y;
-    }
 
-    // 2. Mostrar las variables desde una función distinta al callback
-    void display_and_run() {
-        RCLCPP_INFO(this->get_logger(), "--- ODOMETRÍA ALMACENADA ---");
-        RCLCPP_INFO(this->get_logger(), "X: [%.3f] | Y: [%.3f]", current_x_, current_y_);
+        // 1. Convertir Cuaternión a ángulo Theta (Yaw)
+        tf2::Quaternion q(
+            msg->pose.pose.orientation.x,
+            msg->pose.pose.orientation.y,
+            msg->pose.pose.orientation.z,
+            msg->pose.pose.orientation.w);
         
-        // Aquí podrías añadir lógica que use estas variables para decidir cuándo girar
-        static bool started = false;
-        if (!started) {
-            std::thread(&SquareOdomNode::execute_trajectory, this).detach();
-            started = true;
-        }
+        tf2::Matrix3x3 m(q);
+        double roll, pitch, yaw;
+        m.getRPY(roll, pitch, yaw);
+        
+        current_theta_ = yaw; // Almacenar en variable global del nodo
     }
 
-    void execute_trajectory() {
-        // ... (mismo código de trayectoria que tenías antes)
+    void display_data() {
+        // 2. Mostrar todas las variables almacenadas
+        RCLCPP_INFO(this->get_logger(), "ESTADO ACTUAL:");
+        RCLCPP_INFO(this->get_logger(), "Pos: [%.2f, %.2f] | Ang: [%.2f rad] (%.1f°)", 
+                    current_x_, current_y_, current_theta_, current_theta_ * (180.0/M_PI));
     }
 
-    // Miembros de la clase
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription_;
     rclcpp::TimerBase::SharedPtr timer_;
 
-    // Variables globales del nodo para almacenar posición
+    // Variables globales del nodo
     double current_x_;
     double current_y_;
+    double current_theta_; 
 };
 
 int main(int argc, char * argv[]) {
