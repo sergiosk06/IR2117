@@ -25,11 +25,9 @@ public:
         current_distance_ = 0.0;
         angle_diff_ = 0.0;
         
-        // Hilo principal para no bloquear el spin de ROS
         worker_thread_ = std::thread(&SquareOdomNode::execute_full_square, this);
     }
 
-    // Destructor para asegurar que el hilo termine bien
     ~SquareOdomNode() {
         if (worker_thread_.joinable()) worker_thread_.join();
     }
@@ -54,17 +52,14 @@ private:
         current_y_ = msg->pose.pose.position.y;
         current_theta_ = yaw;
 
-        // Cálculo de distancia desde el último punto de referencia
         current_distance_ = std::sqrt(std::pow(current_x_ - initial_x_, 2) + std::pow(current_y_ - initial_y_, 2));
         
-        // Diferencia de ángulo normalizada
         angle_diff_ = current_theta_ - initial_theta_;
         while (angle_diff_ < -M_PI) angle_diff_ += 2.0 * M_PI;
         while (angle_diff_ > M_PI) angle_diff_ -= 2.0 * M_PI;
     }
 
     void execute_full_square() {
-        // Esperar a tener datos de odometría
         while (rclcpp::ok() && !first_odom_received_) {
             std::this_thread::sleep_for(100ms);
         }
@@ -78,6 +73,8 @@ private:
         for (int i = 0; i < 4; i++) {
             if (!rclcpp::ok()) break;
 
+            RCLCPP_INFO(this->get_logger(), "--- Iniciando Lado %d ---", i + 1);
+
             // --- 1. AVANZAR ---
             initial_x_ = current_x_;
             initial_y_ = current_y_;
@@ -87,6 +84,11 @@ private:
                 msg.linear.x = l_speed;
                 msg.angular.z = 0.0;
                 publisher_->publish(msg);
+                
+                // Muestra la distancia cada 500ms
+                RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500,
+                    "Avanzando: %.2f / %.2f metros", current_distance_, side);
+                
                 loop_rate.sleep();
             }
             stop_robot();
@@ -95,18 +97,22 @@ private:
             initial_theta_ = current_theta_;
             angle_diff_ = 0.0; 
 
-            // Girar hasta 90 grados (PI/2)
             while (rclcpp::ok() && std::abs(angle_diff_) < (M_PI / 2.0)) { 
                 msg.linear.x = 0.0;
                 msg.angular.z = a_speed;
                 publisher_->publish(msg);
+
+                // Muestra el progreso del giro en grados para que sea más fácil de leer
+                RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500,
+                    "Girando: %.2f / 90.00 grados", std::abs(angle_diff_) * 180.0 / M_PI);
+
                 loop_rate.sleep();
             }
             stop_robot();
             
-            RCLCPP_INFO(this->get_logger(), "Lado %d completado", i + 1);
+            RCLCPP_INFO(this->get_logger(), "Lado %d completado exitosamente", i + 1);
         }
-        RCLCPP_INFO(this->get_logger(), "¡Trayectoria terminada!");
+        RCLCPP_INFO(this->get_logger(), "¡Cuadrado terminado!");
     }
 
     void stop_robot() {
