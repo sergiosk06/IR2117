@@ -16,14 +16,16 @@ int main(int argc, char * argv[])
     
 	auto subscription_scan = node->create_subscription<sensor_msgs::msg::LaserScan>(
     	"/scan", 10, [&](const sensor_msgs::msg::LaserScan::SharedPtr msg) {
-       	 
+       	 	
+       	 	float min = msg->ranges[0];
         	for (int i = 0;i < 18;i++){
-       		 	if (i < 9){
-       			 	std::cout << "range [0..9]: " << msg->ranges[i] << std::endl;
-       			 } else {
-       			 	std::cout << "range [350..359]: " << msg->ranges[350+(i-9)] << std::endl;
-       		 	}
+			if (i < 9 && msg->ranges[i] < min) {
+			 min = msg->ranges[i];
+			} else if (i >= 9 && msg->ranges[350 + (i-9)] < min) {
+			 min = msg->ranges[350 + (i-9)];
+			}
         	}
+        	std::cout << "{ranges[0..9], ranges[350..359]}: " << min << std::endl;
 
 
     	});
