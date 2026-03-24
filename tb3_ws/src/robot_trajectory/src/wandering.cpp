@@ -17,10 +17,14 @@ int main(int argc, char * argv[])
 	auto subscription_scan = node->create_subscription<sensor_msgs::msg::LaserScan>(
     	"/scan", 10, [&](const sensor_msgs::msg::LaserScan::SharedPtr msg) {
        	 
-        	std::cout << "[0] " << msg->ranges[0] << std::endl;
-		std::cout << "[90] " << msg->ranges[msg->ranges.size() / 4] << std::endl;
-		std::cout << "[180] " << msg->ranges[msg->ranges.size() / 2] << std::endl;
-		std::cout << "[270] " << msg->ranges[(msg->ranges.size() * 3) / 4] << std::endl;
+        	for (int i = 0;i < 18;i++){
+       		 	if (i < 9){
+       			 	std::cout << "range [0..9]: " << msg->ranges[i] << std::endl;
+       			 } else {
+       			 	std::cout << "range [350..359]: " << msg->ranges[350+(i-9)] << std::endl;
+       		 	}
+        	}
+
 
     	});
 
