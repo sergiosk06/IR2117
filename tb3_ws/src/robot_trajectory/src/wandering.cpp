@@ -31,15 +31,19 @@ int main(int argc, char * argv[])
 
 	rclcpp::WallRate loop_rate(10ms);
 
-	while (rclcpp::ok() && not obs_detectado) {
-    	publisher_cmd_vel->publish(message_cmd_vel);
-    	rclcpp::spin_some(node);
-    	loop_rate.sleep();
+	while (rclcpp::ok()) {
+		if (obs_detectado) {
+			message_cmd_vel.linear.x = 0.0;
+			message_cmd_vel.angular.z = 0.5;
+		} else {
+			message_cmd_vel.linear.x = 0.5;
+			message_cmd_vel.angular.z = 0.0;
+		}
+		publisher_cmd_vel->publish(message_cmd_vel);
+		rclcpp::spin_some(node);
+		loop_rate.sleep();
 	}
-    
-	message_cmd_vel.linear.x = 0.0;
-	message_cmd_vel.angular.z = 0.0;
-	publisher_cmd_vel->publish(message_cmd_vel);
+
 
 	rclcpp::shutdown();
 	return 0;
