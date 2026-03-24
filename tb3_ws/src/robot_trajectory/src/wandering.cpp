@@ -7,6 +7,8 @@
 
 using namespace std::chrono_literals;
 
+bool turn_left = false, turn_right = false;
+
 float min_range09 = std::numeric_limits<float>::max();
 float min_range3509 = std::numeric_limits<float>::max();
 
@@ -57,26 +59,37 @@ int main(int argc, char * argv[])
 			 break;
 			}
         	}
+        	if (!obs_detectado) {
+			turn_left = false;
+			turn_right = false;
+        	} else {
+			if (min_range09 > min_range3509) {
+			 turn_left = true;
+			} else {
+			 turn_right = true;
+			}
+        	}
+
+        	
     	});
 
 	rclcpp::WallRate loop_rate(10ms);
 
 	while (rclcpp::ok()) {
-		if (obs_detectado) {
-			if (min_range09 > min_range3509) {
-			// Girar a la izquierda
+		if (turn_left) {
+			// Girar esquerra
 			message_cmd_vel.linear.x = 0.0;
 			message_cmd_vel.angular.z = 0.5;
-			} else {
+		} else if (turn_right) {
 			// Girar a la derecha
 			message_cmd_vel.linear.x = 0.0;
 			message_cmd_vel.angular.z = -0.5;
-		}
-   	 } else {
-   		 message_cmd_vel.linear.x = 0.5;
-   		 message_cmd_vel.angular.z = 0.0;
-   	 }
-   	 publisher_cmd_vel->publish(message_cmd_vel);
+		} else {
+			// Si no hay estado de giro activado, seguir adelante
+			message_cmd_vel.linear.x = 0.5;
+			message_cmd_vel.angular.z = 0.0;
+		}	
+		publisher_cmd_vel->publish(message_cmd_vel);
 		rclcpp::spin_some(node);
 		loop_rate.sleep();
 	}
