@@ -17,10 +17,11 @@ int main(int argc, char * argv[])
 	auto subscription_scan = node->create_subscription<sensor_msgs::msg::LaserScan>(
     	"/scan", 10, [&](const sensor_msgs::msg::LaserScan::SharedPtr msg) {
        	 
-        	for (auto range : msg->ranges) {
-            	std::cout << range << " ";
-        	}
-        	std::cout << std::endl;
+        	std::cout << "[0] " << msg->ranges[0] << std::endl;
+		std::cout << "[90] " << msg->ranges[msg->ranges.size() / 4] << std::endl;
+		std::cout << "[180] " << msg->ranges[msg->ranges.size() / 2] << std::endl;
+		std::cout << "[270] " << msg->ranges[(msg->ranges.size() * 3) / 4] << std::endl;
+
     	});
 
 	rclcpp::WallRate loop_rate(10ms);
