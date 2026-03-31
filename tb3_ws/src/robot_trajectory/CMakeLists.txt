@@ -19,16 +19,18 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(example_interfaces REQUIRED)
 
-add_executable(wandering src/wandering.cpp)
-ament_target_dependencies(wandering rclcpp sensor_msgs geometry_msgs nav_msgs tf2 tf2_geometry_msgs)
+add_executable(detector src/detector.cpp)
+ament_target_dependencies(detector rclcpp sensor_msgs example_interfaces)
+
+add_executable(avoidance src/avoidance.cpp)
+ament_target_dependencies(avoidance rclcpp geometry_msgs example_interfaces)
 
 install(TARGETS
-  wandering
+  detector
+  avoidance
   DESTINATION lib/${PROJECT_NAME}
 )
 
