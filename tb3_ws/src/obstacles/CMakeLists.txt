@@ -27,4 +27,20 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# Añadir el ejecutable
+add_executable(detector src/detector.cpp)
+
+# Añadir las dependencias del target
+ament_target_dependencies(detector 
+  rclcpp 
+  sensor_msgs 
+  example_interfaces
+)
+
+# Instalación para que ROS pueda encontrar el ejecutable tras el build
+install(TARGETS
+  detector
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()
