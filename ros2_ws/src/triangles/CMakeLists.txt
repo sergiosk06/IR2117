@@ -16,6 +16,10 @@ find_package(geometry_msgs REQUIRED)
 add_executable(equilateral src/equilateral.cpp)
 ament_target_dependencies(equilateral rclcpp geometry_msgs)
 
+add_executable(isosceles src/isosceles.cpp)
+ament_target_dependencies(isosceles rclcpp geometry_msgs)
+install(TARGETS isosceles DESTINATION lib/${PROJECT_NAME})
+
 install(TARGETS
   equilateral
   DESTINATION lib/${PROJECT_NAME})
