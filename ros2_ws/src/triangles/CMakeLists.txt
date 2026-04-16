@@ -20,6 +20,10 @@ add_executable(isosceles src/isosceles.cpp)
 ament_target_dependencies(isosceles rclcpp geometry_msgs)
 install(TARGETS isosceles DESTINATION lib/${PROJECT_NAME})
 
+add_executable(scalene src/scalene.cpp)
+ament_target_dependencies(scalene rclcpp geometry_msgs)
+install(TARGETS scalene DESTINATION lib/${PROJECT_NAME})
+
 install(TARGETS
   equilateral
   DESTINATION lib/${PROJECT_NAME})
